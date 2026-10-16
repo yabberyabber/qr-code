@@ -18,6 +18,14 @@
 <body>
 <h1>QR Code Generator</h1>
 <textarea id="text" rows="3" placeholder="Type text or a URL…" autofocus></textarea>
+<label>Error correction:
+  <select id="ec">
+    <option value="L">L (~7%)</option>
+    <option value="M" selected>M (~15%)</option>
+    <option value="Q">Q (~25%)</option>
+    <option value="H">H (~30%)</option>
+  </select>
+</label>
 <div id="preview"><canvas id="qr" width="1" height="1"></canvas></div>
 <button id="download" disabled>Download PNG</button>
 
@@ -25,6 +33,7 @@
 <script>
   qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
   const input = document.getElementById('text');
+  const ec = document.getElementById('ec');
   const canvas = document.getElementById('qr');
   const button = document.getElementById('download');
   const SCALE = 10, QUIET = 4; // pixels per module, quiet-zone modules
@@ -33,7 +42,7 @@
     const text = input.value;
     const ctx = canvas.getContext('2d');
     if (!text) { canvas.width = canvas.height = 1; button.disabled = true; return; }
-    const qr = qrcode(0, 'M');
+    const qr = qrcode(0, ec.value);
     qr.addData(text);
     qr.make();
     const n = qr.getModuleCount();
@@ -50,15 +59,22 @@
     try { render(); } catch (e) { button.disabled = true; } // e.g. text too long
   }
 
-  input.addEventListener('input', () => {
+  function sync() {
     const url = new URL(location.href);
     if (input.value) url.searchParams.set('text', input.value);
     else url.searchParams.delete('text');
+    if (ec.value !== 'M') url.searchParams.set('ec', ec.value);
+    else url.searchParams.delete('ec');
     history.replaceState(null, '', url);
     update();
-  });
+  }
 
-  input.value = new URLSearchParams(location.search).get('text') || '';
+  input.addEventListener('input', sync);
+  ec.addEventListener('change', sync);
+
+  const params = new URLSearchParams(location.search);
+  input.value = params.get('text') || '';
+  if (['L', 'M', 'Q', 'H'].includes(params.get('ec'))) ec.value = params.get('ec');
   update();
   button.addEventListener('click', () => {
     const a = document.createElement('a');
