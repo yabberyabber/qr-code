@@ -46,9 +46,20 @@
     button.disabled = false;
   }
 
-  input.addEventListener('input', () => {
+  function update() {
     try { render(); } catch (e) { button.disabled = true; } // e.g. text too long
+  }
+
+  input.addEventListener('input', () => {
+    const url = new URL(location.href);
+    if (input.value) url.searchParams.set('text', input.value);
+    else url.searchParams.delete('text');
+    history.replaceState(null, '', url);
+    update();
   });
+
+  input.value = new URLSearchParams(location.search).get('text') || '';
+  update();
   button.addEventListener('click', () => {
     const a = document.createElement('a');
     a.href = canvas.toDataURL('image/png');
