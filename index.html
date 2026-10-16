@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QR Code Generator</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 420px; margin: 2rem auto; padding: 0 16px; }
+  textarea { width: 100%; box-sizing: border-box; font: inherit; padding: .5rem; }
+  #preview {
+    margin: 1rem 0; display: flex; justify-content: center;
+    background: repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0 0 / 20px 20px;
+  }
+  canvas { width: 100%; max-width: 360px; height: auto; image-rendering: pixelated; }
+  button { font: inherit; padding: .5rem 1rem; }
+</style>
+</head>
+<body>
+<h1>QR Code Generator</h1>
+<textarea id="text" rows="3" placeholder="Type text or a URL…" autofocus></textarea>
+<div id="preview"><canvas id="qr" width="1" height="1"></canvas></div>
+<button id="download" disabled>Download PNG</button>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script>
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
+  const input = document.getElementById('text');
+  const canvas = document.getElementById('qr');
+  const button = document.getElementById('download');
+  const SCALE = 10, QUIET = 4; // pixels per module, quiet-zone modules
+
+  function render() {
+    const text = input.value;
+    const ctx = canvas.getContext('2d');
+    if (!text) { canvas.width = canvas.height = 1; button.disabled = true; return; }
+    const qr = qrcode(0, 'M');
+    qr.addData(text);
+    qr.make();
+    const n = qr.getModuleCount();
+    canvas.width = canvas.height = (n + QUIET * 2) * SCALE;
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // stays transparent
+    ctx.fillStyle = '#000';
+    for (let r = 0; r < n; r++)
+      for (let c = 0; c < n; c++)
+        if (qr.isDark(r, c)) ctx.fillRect((c + QUIET) * SCALE, (r + QUIET) * SCALE, SCALE, SCALE);
+    button.disabled = false;
+  }
+
+  input.addEventListener('input', () => {
+    try { render(); } catch (e) { button.disabled = true; } // e.g. text too long
+  });
+  button.addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = 'qr.png';
+    a.click();
+  });
+</script>
+</body>
+</html>
